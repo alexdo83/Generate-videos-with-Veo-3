@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Generate videos with Veo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono&family=Permanent+Marker&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.sh/@google/genai@^1.4.0",
+          "react/": "https://aistudiocdn.com/react@^19.1.1/",
+          "react": "https://aistudiocdn.com/react@^19.1.1",
+          "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+          "framer-motion": "https://aistudiocdn.com/framer-motion@^11.3.12"
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-[#1E1F20] font-['Inter'] text-gray-300 antialiased">
+    <div
+      class="min-h-screen flex items-center justify-center p-4"
+      role="main"
+    >
+      <div
+        class="bg-[#2a2b2e] px-8 pt-8 pb-6 rounded-2xl shadow-2xl w-full max-w-2xl space-y-6"
+      >
+        <div class="text-center">
+          <h1 class="text-3xl font-bold text-white tracking-tight">
+            Generate videos with Veo
+          </h1>
+          <p class="text-gray-400 mt-2 text-sm">
+            Enter a prompt and optional image to generate a video with Veo.<br />
+            See the "Code" tab for an example implementation.
+          </p>
+        </div>
+
+        <div class="space-y-2 border-b border-gray-700 pb-6">
+          <label for="api-key-input" class="block text-sm font-medium text-gray-400">
+            API Key
+          </label>
+          <div class="flex gap-2">
+            <input
+              type="password"
+              id="api-key-input"
+              class="flex-grow bg-[#353739] border border-gray-600 rounded-lg p-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 transition-shadow"
+              placeholder="Enter your Gemini API Key here"
+              aria-label="Gemini API Key"
+            />
+            <button
+              id="save-api-key-button"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-400"
+            >
+              Save
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 pt-1">
+            Your key is saved securely in your browser for future sessions.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <textarea
+            id="prompt-input"
+            rows="4"
+            class="w-full bg-[#353739] border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 resize-none"
+            placeholder="Enter a prompt, e.g., 'A cinematic shot of a futuristic city at night'"
+            aria-label="Video generation prompt"
+          ></textarea>
+
+          <div
+            id="analysis-output"
+            class="hidden bg-[#353739] border border-gray-600 rounded-lg p-4 text-sm text-gray-300 space-y-2"
+          ></div>
+
+          <div>
+            <p class="text-sm text-gray-400 mb-2">
+              Conditioning Image (Optional)
+            </p>
+            <div class="flex items-center space-x-4">
+              <label
+                for="file-input"
+                class="cursor-pointer bg-[#353739] hover:bg-[#4a4c50] text-white font-semibold py-2 px-4 rounded-lg border border-gray-600 transition-colors duration-200"
+              >
+                Choose File
+              </label>
+              <input
+                id="file-input"
+                type="file"
+                accept="image/*"
+                class="hidden"
+              />
+              <span id="file-name" class="text-gray-400 text-sm"
+                >No file chosen</span
+              >
+            </div>
+            <img
+              alt="Conditioning image preview"
+              id="img-preview"
+              class="hidden rounded-lg max-h-48 mt-4"
+            />
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label
+              for="preset-select"
+              class="block text-sm font-medium text-gray-400 mb-1"
+              >Preset</label
+            >
+            <select
+              id="preset-select"
+              class="w-full bg-[#353739] border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="cinematic" selected>Short Cinematic</option>
+              <option value="animation">Animation Test</option>
+              <option value="product">Product Demo</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label
+                for="aspect-ratio-select"
+                class="block text-sm font-medium text-gray-400 mb-1"
+                >Aspect Ratio</label
+              >
+              <select
+                id="aspect-ratio-select"
+                class="w-full bg-[#353739] border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option>16:9</option>
+                <option>9:16</option>
+                <option>1:1</option>
+                <option>4:3</option>
+                <option>3:4</option>
+              </select>
+            </div>
+            <div>
+              <label
+                for="duration-input"
+                class="block text-sm font-medium text-gray-400 mb-1"
+                >Duration (s)</label
+              >
+              <input
+                type="number"
+                id="duration-input"
+                value="5"
+                min="1"
+                max="15"
+                class="w-full bg-[#353739] border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label
+                for="resolution-select"
+                class="block text-sm font-medium text-gray-400 mb-1"
+                >Resolution</label
+              >
+              <select
+                id="resolution-select"
+                class="w-full bg-[#353739] border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option>720p</option>
+                <option>1080p</option>
+              </select>
+            </div>
+            <div>
+              <label
+                for="model-select"
+                class="block text-sm font-medium text-gray-400 mb-1"
+                >Model</label
+              >
+              <select
+                id="model-select"
+                class="w-full bg-[#353739] border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="veo-3.1-fast-generate-preview">Fast</option>
+                <option value="veo-3.1-generate-preview">High Quality</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 pt-2">
+          <button
+            id="analyze-button"
+            class="w-full sm:w-auto flex-grow bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-gray-400 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Analyze Prompt
+          </button>
+          <button
+            id="generate-button"
+            class="w-full sm:w-auto flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            Generate
+          </button>
+        </div>
+
+        <div id="video-container" class="w-full space-y-4 hidden">
+          <video
+            id="video"
+            class="w-full rounded-lg"
+            autoplay
+            loop
+            controls
+          ></video>
+          <button
+            id="download-button"
+            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-green-400 focus:ring-opacity-50"
+          >
+            Download Video
+          </button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progress-container" class="w-full space-y-2 hidden">
+          <div class="flex justify-between">
+            <span id="progress-label" class="text-sm font-medium text-gray-400"
+              >Generating...</span
+            >
+            <span id="progress-percent" class="text-sm font-medium text-gray-400"
+              >0%</span
+            >
+          </div>
+          <div class="w-full bg-gray-600 rounded-full h-2.5">
+            <div
+              id="progress-bar"
+              class="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+              style="width: 0%"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Status Message Fallback -->
+        <p id="status" class="text-center text-gray-400 min-h-[24px]"></p>
+      </div>
+    </div>
+    <script type="module" src="index.tsx"></script>
+
+    <div id="banner-root"></div>
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { motion, AnimatePresence } from 'framer-motion';
+
+      const REMIX_IDEAS = [
+        "to generate a movie poster.",
+        "to visualize a product placement.",
+        "to animate your character designs.",
+        "to replay past actions or imagine new ones",
+        "to quickly preview different movie shots.",
+      ];
+
+      const CloseIcon = () => (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      );
+
+      const Banner = () => {
+          const [isVisible, setIsVisible] = useState(true);
+          const [index, setIndex] = useState(0);
+
+          useEffect(() => {
+              const intervalId = setInterval(() => {
+                  setIndex(prevIndex => (prevIndex + 1) % REMIX_IDEAS.length);
+              }, 3500);
+
+              return () => clearInterval(intervalId);
+          }, []);
+
+          const handleSelectKeyClick = async (e) => {
+            e.preventDefault();
+            if (window.aistudio?.openSelectKey) {
+              await window.aistudio.openSelectKey();
+            } else {
+              console.log('window.aistudio.openSelectKey() not available.');
+              alert('API key selection is not available in this environment.');
+            }
+          };
+          
+          if (!isVisible) {
+            return null;
+          }
+
+          return (
+              <header className="app-banner">
+                  <div className="app-banner-content">
+                      <div className="banner-left">
+                          <p>Powered by the Gemini API</p>
+                      </div>
+                      <div className="remix-ideas">
+                          <span className="remix-prompt">Remix this app...</span>
+                          <div className="remix-text-container">
+                              <AnimatePresence mode="wait">
+                                  <motion.span
+                                      key={index}
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -10 }}
+                                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                                      className="remix-text"
+                                  >
+                                      {REMIX_IDEAS[index]}
+                                  </motion.span>
+                              </AnimatePresence>
+                          </div>
+                      </div>
+                      <div className="banner-right">
+                          <div className="banner-buttons">
+                              <a
+                                  href="https://aistudio.google.com/apps"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="banner-button button-gemini-chat"
+                              >
+                                  Apps on AI Studio
+                              </a>
+                              <a
+                                  href="#"
+                                  onClick={handleSelectKeyClick}
+                                  className="banner-button button-ai-studio"
+                              >
+                                  Add your API Key
+                              </a>
+                          </div>
+                          <button
+                            className="close-button"
+                            onClick={() => setIsVisible(false)}
+                            aria-label="Close notice">
+                            <CloseIcon />
+                          </button>
+                      </div>
+                  </div>
+              </header>
+          );
+      };
+
+      const container = document.getElementById('banner-root');
+      if (container) {
+        const root = createRoot(container);
+        root.render(<React.StrictMode><Banner /></React.StrictMode>);
+      }
+    </script>
+  </body>
+</html>
